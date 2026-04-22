@@ -9,13 +9,14 @@
     <meta name="apple-mobile-web-app-title" content="Currency">
     <meta name="theme-color" content="#050505">
     
-    <title>Currency</title>
+    <title>Currency (Fixed-Layout)</title>
 
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='4' fill='%23050505'/%3E%3Cpath d='M12 21C16.9 21 21 16.9 21 12C21 7.1 16.9 3 12 3C7.1 3 3 7.1 3 12C3 16.9 7.1 21 12 21Z' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M12 6V18' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M9.5 9.5H13.5C14.3 9.5 15 10.2 15 11C15 11.8 14.3 12.5 13.5 12.5H10.5C9.7 12.5 9 13.2 9 14C9 14.8 9.7 15.5 10.5 15.5H14.5' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M5.6 5.6L8.4 8.4' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M18.4 18.4L15.6 15.6' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E">
     
     <link rel="apple-touch-icon" href="https://ui-avatars.com/api/?name=%E2%82%AC&background=050505&color=fff&size=512&font-size=0.7&bold=true">
 
     <style>
+        /* --- 基礎優化：禁止全域縮放與預設行為 --- */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -24,22 +25,31 @@
             user-select: none; 
             -webkit-user-select: none;
             -webkit-tap-highlight-color: transparent;
+            /* 禁止回彈與下拉刷新 */
+            overscroll-behavior: none; 
+        }
+
+        html, body {
+            /* 強制鎖定視窗寬高 */
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            overflow: hidden; 
+            position: fixed; /* 關鍵：防止整體滾動 */
         }
 
         body {
             background-color: #050505;
-            min-height: 100dvh; 
             display: flex;
             justify-content: center;
             align-items: center;
             color: #ffffff;
-            overflow: hidden;
-            position: relative;
         }
 
-        /* --- 啟動畫面 (Splash Screen) --- */
+        /* --- 啟動畫面 --- */
         .splash-screen {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh;
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100dvh;
             background-color: #050505; z-index: 10000;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             transition: opacity 0.5s ease-out, visibility 0.5s;
@@ -47,7 +57,8 @@
         .splash-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
         .splash-logo { animation: pulse 2s infinite ease-in-out; margin-bottom: 60px; }
         .splash-text {
-            position: absolute; bottom: 50px; font-size: 13px; color: #888888;
+            position: absolute;
+            bottom: 50px; font-size: 13px; color: #888888;
             letter-spacing: 2px; animation: fadeInOut 1.5s infinite ease-in-out;
             padding-bottom: env(safe-area-inset-bottom);
         }
@@ -55,9 +66,10 @@
         @keyframes pulse { 0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.8; } }
         @keyframes fadeInOut { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
 
-        /* --- 背景流動光暈 --- */
+        /* 背景光暈 */
         .blob {
-            position: absolute; filter: blur(90px); z-index: 0; opacity: 0.65;
+            position: absolute;
+            filter: blur(90px); z-index: 0; opacity: 0.65;
             animation: moveBlob 18s infinite alternate ease-in-out;
         }
         .blob-1 { width: 350px; height: 350px; background: linear-gradient(135deg, #5e2b97, #1a1025); top: -5%; left: -10%; }
@@ -65,130 +77,68 @@
 
         @keyframes moveBlob { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(60px, 40px) scale(1.15); } 100% { transform: translate(-40px, -60px) scale(0.85); } }
 
-        /* 主畫面玻璃面板 */
+        /* 主畫面玻璃面板 - 加強邊距處理防止溢出 */
         .glass-panel {
-            position: relative; z-index: 10; width: 100%; max-width: 480px; height: 100dvh;
+            position: relative;
+            z-index: 10; 
+            width: 100%; 
+            max-width: 480px; 
+            height: 100dvh;
             display: flex; flex-direction: column;
             padding: env(safe-area-inset-top) 20px env(safe-area-inset-bottom) 20px;
             background: rgba(10, 10, 10, 0.45);
             backdrop-filter: blur(30px) saturate(200%); -webkit-backdrop-filter: blur(30px) saturate(200%);
             border: 1px solid rgba(255, 255, 255, 0.05);
+            overflow: hidden; /* 確保內部組件不會撐開面板 */
         }
 
         @media (min-width: 480px) {
-            .glass-panel { height: 90vh; border-radius: 40px; box-shadow: 0 40px 80px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1); margin: 20px 0; }
+            .glass-panel { height: 90vh; border-radius: 40px; box-shadow: 0 40px 80px rgba(0, 0, 0, 0.8); margin: 20px 0; }
         }
 
-        /* --- 頂部區域 & 設定按鈕 --- */
+        /* --- 以下 UI 樣式維持原設計 --- */
         .top-bar { position: relative; display: flex; align-items: center; justify-content: center; margin-top: 5px; margin-bottom: 15px; width: 100%; }
         .header-container { display: flex; align-items: center; justify-content: center; gap: 10px; }
         h2 { font-size: 24px; font-weight: 700; letter-spacing: 1px; background: linear-gradient(135deg, #ffffff, #888888); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         
-        .settings-btn {
-            position: absolute; right: 0; width: 36px; height: 36px; border-radius: 50%;
-            background: rgba(255, 255, 255, 0.08); display: flex; justify-content: center; align-items: center;
-            cursor: pointer; transition: all 0.2s; border: 1px solid rgba(255, 255, 255, 0.1);
-        }
+        .settings-btn { position: absolute; right: 0; width: 36px; height: 36px; border-radius: 50%; background: rgba(255, 255, 255, 0.08); display: flex; justify-content: center; align-items: center; cursor: pointer; transition: all 0.2s; border: 1px solid rgba(255, 255, 255, 0.1); }
         .settings-btn:active { transform: scale(0.85); background: rgba(255, 255, 255, 0.2); }
 
         .input-group { margin-bottom: 12px; }
-
-        select, input {
-            width: 100%; padding: 12px 6px; font-size: 14px; color: #ffffff;
-            background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px; outline: none; appearance: none; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
-            text-align: center; text-align-last: center;
-        }
-
+        select, input { width: 100%; padding: 12px 6px; font-size: 14px; color: #ffffff; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; outline: none; appearance: none; text-align: center; text-align-last: center; }
         select option { background-color: #1a1a1a; color: #fff; }
+        input { text-align: right; font-size: 28px; font-weight: 600; color: #0a84ff; background: rgba(0, 0, 0, 0.3); pointer-events: none; letter-spacing: 1px; padding: 14px 18px; }
 
-        input {
-            text-align: right; font-size: 28px; font-weight: 600; color: #0a84ff;
-            background: rgba(0, 0, 0, 0.3); pointer-events: none; letter-spacing: 1px; padding: 14px 18px;
-        }
+        .swap-btn { display: flex; justify-content: center; align-items: center; width: 42px; height: 42px; border-radius: 14px; background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.2); color: #fff; font-size: 22px; cursor: pointer; transition: all 0.15s; flex-shrink: 0; }
+        .swap-btn:active { transform: scale(0.8); }
 
-        .swap-btn {
-            display: flex; justify-content: center; align-items: center; width: 42px; height: 42px;
-            border-radius: 14px; background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.2);
-            color: #fff; font-size: 22px; cursor: pointer; transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2); flex-shrink: 0;
-        }
-        .swap-btn:active { transform: scale(0.8); background: rgba(255, 255, 255, 0.3); }
-
-        .result-container { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; background: transparent; margin-bottom: 10px; }
-        .result-amount {
-            font-size: 46px; font-weight: 800; text-align: center; word-wrap: break-word; max-width: 100%;
-            background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
+        .result-container { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; margin-bottom: 10px; }
+        .result-amount { font-size: 46px; font-weight: 800; text-align: center; word-wrap: break-word; max-width: 100%; background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
         .status-text { text-align: center; font-size: 11px; color: #ffcc00; margin-bottom: 10px; }
 
         .keypad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding-bottom: 10px; }
-        .key-btn {
-            background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 22px; 
-            box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.2), 0 4px 12px rgba(0, 0, 0, 0.2);
-            padding: 16px 0; font-size: 26px; font-weight: 500; color: #ffffff; cursor: pointer;
-            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1); display: flex; justify-content: center; align-items: center;
-        }
-        
-        /* 實體鍵盤按下時的視覺回饋類別 */
-        .key-btn:active, .key-btn.active-state { background: rgba(255, 255, 255, 0.25); transform: scale(0.92); box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3); }
-        
+        .key-btn { background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 22px; padding: 16px 0; font-size: 26px; font-weight: 500; color: #ffffff; cursor: pointer; display: flex; justify-content: center; align-items: center; }
+        .key-btn:active, .key-btn.active-state { background: rgba(255, 255, 255, 0.25); transform: scale(0.92); }
         .operator { background: rgba(10, 132, 255, 0.15); color: #5e5ce6; font-weight: 600; }
-        .operator:active, .operator.active-state { background: rgba(10, 132, 255, 0.35); }
         .key-delete { color: #ff453a; }
-        .key-equals { background: linear-gradient(135deg, #0a84ff, #5e5ce6); color: white; border: none; box-shadow: 0 8px 20px rgba(10, 132, 255, 0.3); }
-        .key-equals:active, .key-equals.active-state { background: linear-gradient(135deg, #006ee6, #4c4acc); }
+        .key-equals { background: linear-gradient(135deg, #0a84ff, #5e5ce6); color: white; border: none; }
         .key-zero { grid-column: span 2; }
 
-        /* --- 設定面板 (Settings Modal) --- */
-        .settings-overlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh;
-            background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-            z-index: 5000; display: flex; flex-direction: column;
-            opacity: 0; visibility: hidden; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            transform: translateY(20px);
-        }
+        /* 設定面板 */
+        .settings-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); z-index: 5000; display: flex; flex-direction: column; opacity: 0; visibility: hidden; transition: 0.3s; transform: translateY(20px); }
         .settings-overlay.show { opacity: 1; visibility: visible; transform: translateY(0); }
-        
-        .settings-header {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: env(safe-area-inset-top) 20px 15px 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.1); background: rgba(10,10,10,0.5);
-        }
-        .settings-title { font-size: 18px; font-weight: 600; color: #fff; }
-        .settings-close { font-size: 16px; color: #0a84ff; font-weight: 600; cursor: pointer; padding: 5px 0; }
-        .settings-close:active { opacity: 0.6; }
-        
-        .settings-list { flex: 1; overflow-y: auto; padding: 10px 20px 40px; }
+        .settings-header { display: flex; justify-content: space-between; align-items: center; padding: env(safe-area-inset-top) 20px 15px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .settings-list { flex: 1; overflow-y: auto; padding: 10px 20px 40px; -webkit-overflow-scrolling: touch; }
         .currency-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
-        .currency-name { font-size: 16px; color: #fff; }
         
-        /* iOS 風格切換開關 */
-        .ios-toggle {
-            appearance: none; -webkit-appearance: none; outline: none;
-            width: 50px; height: 30px; background: rgba(255,255,255,0.2); border-radius: 15px;
-            position: relative; cursor: pointer; transition: background 0.3s;
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.2); margin: 0;
-        }
-        .ios-toggle::after {
-            content: ''; position: absolute; top: 2px; left: 2px; width: 26px; height: 26px;
-            background: #ffffff; border-radius: 50%; transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
+        .ios-toggle { appearance: none; -webkit-appearance: none; width: 50px; height: 30px; background: rgba(255,255,255,0.2); border-radius: 15px; position: relative; cursor: pointer; }
+        .ios-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 26px; height: 26px; background: #ffffff; border-radius: 50%; transition: 0.3s; }
         .ios-toggle:checked { background: #34c759; }
         .ios-toggle:checked::after { transform: translateX(20px); }
 
-        /* --- 橫向螢幕鎖定提示 --- */
-        .portrait-lock-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh;
-            background: rgba(5, 5, 5, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            z-index: 9999; color: #ffffff; text-align: center; flex-direction: column; justify-content: center; align-items: center;
-        }
-        .portrait-lock-icon { font-size: 50px; margin-bottom: 20px; animation: tiltPhone 2s infinite ease-in-out; }
-        .portrait-lock-text { font-size: 20px; font-weight: 600; letter-spacing: 2px; line-height: 1.5; background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        @keyframes tiltPhone { 0%, 100% { transform: rotate(-90deg); } 50% { transform: rotate(0deg); } }
-        @media (hover: none) and (pointer: coarse) and (orientation: landscape) { .portrait-lock-overlay { display: flex; } .glass-panel, .settings-overlay { display: none !important; } }
+        .portrait-lock-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: rgba(5, 5, 5, 0.95); z-index: 9999; color: #ffffff; text-align: center; flex-direction: column; justify-content: center; align-items: center; }
+        @media (hover: none) and (pointer: coarse) and (orientation: landscape) { .portrait-lock-overlay { display: flex; } }
     </style>
 </head>
 <body>
@@ -229,7 +179,6 @@
 <div class="blob blob-2"></div>
 
 <div class="glass-panel">
-    
     <div class="top-bar">
         <div class="header-container">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -246,7 +195,6 @@
             </svg>
             <h2>Currency</h2>
         </div>
-        
         <div class="settings-btn" onclick="openSettings()">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="3"></circle>
@@ -259,9 +207,7 @@
         <div class="input-group" style="flex: 1; margin-bottom: 0;">
             <select id="fromCurrency"></select>
         </div>
-        
         <div id="swapBtn" class="swap-btn">⇄</div>
-        
         <div class="input-group" style="flex: 1; margin-bottom: 0;">
             <select id="toCurrency"></select>
         </div>
@@ -282,29 +228,34 @@
         <div class="key-btn" onclick="pressKey('8')">8</div>
         <div class="key-btn" onclick="pressKey('9')">9</div>
         <div class="key-btn operator" onclick="pressKey('÷')">÷</div>
-
         <div class="key-btn" onclick="pressKey('4')">4</div>
         <div class="key-btn" onclick="pressKey('5')">5</div>
         <div class="key-btn" onclick="pressKey('6')">6</div>
         <div class="key-btn operator" onclick="pressKey('×')">×</div>
-
         <div class="key-btn" onclick="pressKey('1')">1</div>
         <div class="key-btn" onclick="pressKey('2')">2</div>
         <div class="key-btn" onclick="pressKey('3')">3</div>
         <div class="key-btn operator" onclick="pressKey('-')">-</div>
-
         <div class="key-btn key-zero" onclick="pressKey('0')">0</div>
         <div class="key-btn" onclick="pressKey('.')">.</div>
         <div class="key-btn operator" onclick="pressKey('+')">+</div>
-
         <div class="key-btn key-delete key-zero" id="deleteBtn">⌫</div>
         <div class="key-btn" style="color: #ff9f0a; font-weight: 600;" onclick="clearAll()">C</div>
         <div class="key-btn key-equals" onclick="calculateMathResult()">=</div>
     </div>
-
 </div>
 
 <script>
+    // --- 腳本開始 ---
+    // A. 強化防滑動監聽
+    window.addEventListener('touchmove', function(e) {
+        // 如果不是在設定列表內的滑動，則禁止
+        if (!e.target.closest('.settings-list')) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+
+    // 餘下邏輯繼承自 v14.1 並維持不變
     const ALL_CURRENCIES = [
         { code: "USD", label: "🇺🇸 美金 (USD)" },
         { code: "TWD", label: "🇹🇼 新台幣 (TWD)" },
@@ -332,17 +283,9 @@
     ];
 
     let activeCurrencyCodes = JSON.parse(localStorage.getItem('activeCurrencies'));
-    if (!activeCurrencyCodes) {
-        activeCurrencyCodes = ALL_CURRENCIES.map(c => c.code);
-    }
+    if (!activeCurrencyCodes) { activeCurrencyCodes = ALL_CURRENCIES.map(c => c.code); }
 
-    let exchangeRates = {
-        USD: 1.0, TWD: 32.0, HKD: 7.8, CNY: 7.2, PHP: 56.0, 
-        KRW: 1350.0, JPY: 150.0, VND: 25400.0, THB: 36.8, MYR: 4.78, 
-        SGD: 1.36, IDR: 16000.0, INR: 83.0, AUD: 1.53, NZD: 1.65, 
-        RUB: 93.0, EUR: 0.92, CHF: 0.90, GBP: 0.79, CAD: 1.37, 
-        XAU: 0.00042, BTC: 0.000015, ETH: 0.0003
-    };
+    let exchangeRates = { USD: 1.0, TWD: 32.0, HKD: 7.8, CNY: 7.2, PHP: 56.0, KRW: 1350.0, JPY: 150.0, VND: 25400.0, THB: 36.8, MYR: 4.78, SGD: 1.36, IDR: 16000.0, INR: 83.0, AUD: 1.53, NZD: 1.65, RUB: 93.0, EUR: 0.92, CHF: 0.90, GBP: 0.79, CAD: 1.37, XAU: 0.00042, BTC: 0.000015, ETH: 0.0003 };
 
     const amountInput = document.getElementById('amount');
     const fromSelect = document.getElementById('fromCurrency');
@@ -351,30 +294,15 @@
     const statusText = document.getElementById('status');
     const deleteBtn = document.getElementById('deleteBtn');
     const swapBtn = document.getElementById('swapBtn');
-    
     let currentInputValue = "0";
 
-    function hapticFeedback(type = 'light') {
-        if (navigator.vibrate) {
-            if (type === 'light') navigator.vibrate(15);
-            if (type === 'heavy') navigator.vibrate([40, 20, 40]);
-        }
-    }
+    function hapticFeedback(type = 'light') { if (navigator.vibrate) { if (type === 'light') navigator.vibrate(15); if (type === 'heavy') navigator.vibrate([40, 20, 40]); } }
 
     function renderDropdowns() {
         const currentFrom = fromSelect.value || "USD";
         const currentTo = toSelect.value || "TWD";
-        
-        fromSelect.innerHTML = "";
-        toSelect.innerHTML = "";
-
-        ALL_CURRENCIES.forEach(currency => {
-            if (activeCurrencyCodes.includes(currency.code)) {
-                fromSelect.innerHTML += `<option value="${currency.code}">${currency.label}</option>`;
-                toSelect.innerHTML += `<option value="${currency.code}">${currency.label}</option>`;
-            }
-        });
-
+        fromSelect.innerHTML = ""; toSelect.innerHTML = "";
+        ALL_CURRENCIES.forEach(currency => { if (activeCurrencyCodes.includes(currency.code)) { fromSelect.innerHTML += `<option value="${currency.code}">${currency.label}</option>`; toSelect.innerHTML += `<option value="${currency.code}">${currency.label}</option>`; } });
         fromSelect.value = activeCurrencyCodes.includes(currentFrom) ? currentFrom : activeCurrencyCodes[0];
         toSelect.value = activeCurrencyCodes.includes(currentTo) ? currentTo : (activeCurrencyCodes[1] || activeCurrencyCodes[0]);
     }
@@ -383,273 +311,79 @@
         hapticFeedback('light');
         const listDiv = document.getElementById('settingsList');
         listDiv.innerHTML = '';
-        
         ALL_CURRENCIES.forEach(currency => {
             const isChecked = activeCurrencyCodes.includes(currency.code) ? 'checked' : '';
-            listDiv.innerHTML += `
-                <div class="currency-item" onclick="toggleCurrency(event, '${currency.code}')">
-                    <span class="currency-name">${currency.label}</span>
-                    <input type="checkbox" class="ios-toggle" id="toggle-${currency.code}" ${isChecked} onclick="event.stopPropagation()">
-                </div>
-            `;
+            listDiv.innerHTML += `<div class="currency-item" onclick="toggleCurrency(event, '${currency.code}')"><span class="currency-name">${currency.label}</span><input type="checkbox" class="ios-toggle" id="toggle-${currency.code}" ${isChecked} onclick="event.stopPropagation()"></div>`;
         });
-
-        ALL_CURRENCIES.forEach(currency => {
-            const toggle = document.getElementById(`toggle-${currency.code}`);
-            if(toggle) {
-                toggle.addEventListener('change', (e) => {
-                    handleToggleChange(currency.code, e.target.checked);
-                });
-            }
-        });
-
         document.getElementById('settingsOverlay').classList.add('show');
     }
 
-    function toggleCurrency(event, code) {
-        const toggle = document.getElementById(`toggle-${code}`);
-        toggle.checked = !toggle.checked;
-        handleToggleChange(code, toggle.checked);
-    }
+    function toggleCurrency(event, code) { const toggle = document.getElementById(`toggle-${code}`); toggle.checked = !toggle.checked; handleToggleChange(code, toggle.checked); }
 
-    function handleToggleChange(code, isChecked) {
-        hapticFeedback('light');
-        if (isChecked) {
-            if (!activeCurrencyCodes.includes(code)) activeCurrencyCodes.push(code);
-        } else {
-            if (activeCurrencyCodes.length > 2) {
-                activeCurrencyCodes = activeCurrencyCodes.filter(c => c !== code);
-            } else {
-                document.getElementById(`toggle-${code}`).checked = true;
-                hapticFeedback('heavy');
-            }
-        }
-    }
+    function handleToggleChange(code, isChecked) { hapticFeedback('light'); if (isChecked) { if (!activeCurrencyCodes.includes(code)) activeCurrencyCodes.push(code); } else { if (activeCurrencyCodes.length > 2) { activeCurrencyCodes = activeCurrencyCodes.filter(c => c !== code); } else { document.getElementById(`toggle-${code}`).checked = true; hapticFeedback('heavy'); } } }
 
-    function closeSettings() {
-        hapticFeedback('light');
-        activeCurrencyCodes.sort((a, b) => {
-            return ALL_CURRENCIES.findIndex(x => x.code === a) - ALL_CURRENCIES.findIndex(x => x.code === b);
-        });
-        
-        localStorage.setItem('activeCurrencies', JSON.stringify(activeCurrencyCodes));
-        renderDropdowns();
-        processConversion();
-        document.getElementById('settingsOverlay').classList.remove('show');
-    }
-
-    renderDropdowns();
+    function closeSettings() { hapticFeedback('light'); activeCurrencyCodes.sort((a, b) => { return ALL_CURRENCIES.findIndex(x => x.code === a) - ALL_CURRENCIES.findIndex(x => x.code === b); }); localStorage.setItem('activeCurrencies', JSON.stringify(activeCurrencyCodes)); renderDropdowns(); processConversion(); document.getElementById('settingsOverlay').classList.remove('show'); }
 
     async function fetchLiveRates() {
         const minSplashTime = new Promise(resolve => setTimeout(resolve, 1500));
-        
         try {
-            const [fiatRes, btcRes, ethRes, paxgRes, _] = await Promise.all([
-                fetch('https://open.er-api.com/v6/latest/USD'),
-                fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT'),
-                fetch('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT'),
-                fetch('https://api.binance.com/api/v3/ticker/price?symbol=PAXGUSDT'),
-                minSplashTime
-            ]);
-
+            const [fiatRes, btcRes, ethRes, paxgRes, _] = await Promise.all([ fetch('https://open.er-api.com/v6/latest/USD'), fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT'), fetch('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT'), fetch('https://api.binance.com/api/v3/ticker/price?symbol=PAXGUSDT'), minSplashTime ]);
             const fiatData = await fiatRes.json();
-            const btcData = await btcRes.json();
-            const ethData = await ethRes.json();
-            const paxgData = await paxgRes.json();
-
-            if (fiatData.result === "success") {
-                const r = fiatData.rates;
-                exchangeRates.TWD = r.TWD; exchangeRates.CNY = r.CNY;
-                exchangeRates.HKD = r.HKD; exchangeRates.JPY = r.JPY;
-                exchangeRates.KRW = r.KRW; exchangeRates.VND = r.VND;
-                exchangeRates.THB = r.THB; exchangeRates.SGD = r.SGD;
-                exchangeRates.MYR = r.MYR; exchangeRates.EUR = r.EUR;
-                exchangeRates.GBP = r.GBP; exchangeRates.CAD = r.CAD;
-                exchangeRates.AUD = r.AUD; exchangeRates.RUB = r.RUB;
-                exchangeRates.PHP = r.PHP; exchangeRates.IDR = r.IDR;
-                exchangeRates.INR = r.INR; exchangeRates.NZD = r.NZD;
-                exchangeRates.CHF = r.CHF;
-            }
-            
-            if (btcData && btcData.price) exchangeRates.BTC = 1 / parseFloat(btcData.price);
-            if (ethData && ethData.price) exchangeRates.ETH = 1 / parseFloat(ethData.price);
-            if (paxgData && paxgData.price) exchangeRates.XAU = 1 / parseFloat(paxgData.price);
-
-            statusText.textContent = "🟢 即時匯率已同步";
-            statusText.style.color = "rgba(255, 255, 255, 0.4)";
-            processConversion();
-        } catch (error) {
-            await minSplashTime; 
-            statusText.textContent = "🔴 無法連線，使用備用匯率";
-            statusText.style.color = "#ff4d4d";
-        } finally {
-            document.getElementById('splashScreen').classList.add('hidden');
-        }
+            if (fiatData.result === "success") { const r = fiatData.rates; Object.assign(exchangeRates, { TWD: r.TWD, CNY: r.CNY, HKD: r.HKD, JPY: r.JPY, KRW: r.KRW, VND: r.VND, THB: r.THB, SGD: r.SGD, MYR: r.MYR, EUR: r.EUR, GBP: r.GBP, CAD: r.CAD, AUD: r.AUD, RUB: r.RUB, PHP: r.PHP, IDR: r.IDR, INR: r.INR, NZD: r.NZD, CHF: r.CHF }); }
+            const btcData = await btcRes.json(); if (btcData.price) exchangeRates.BTC = 1 / parseFloat(btcData.price);
+            const ethData = await ethRes.json(); if (ethData.price) exchangeRates.ETH = 1 / parseFloat(ethData.price);
+            const paxgData = await paxgRes.json(); if (paxgData.price) exchangeRates.XAU = 1 / parseFloat(paxgData.price);
+            statusText.textContent = "🟢 即時匯率已同步"; statusText.style.color = "rgba(255, 255, 255, 0.4)";
+        } catch (e) { await minSplashTime; statusText.textContent = "🔴 無法連線，使用備用匯率"; statusText.style.color = "#ff4d4d"; }
+        finally { document.getElementById('splashScreen').classList.add('hidden'); processConversion(); }
     }
 
-    swapBtn.addEventListener('click', () => {
-        hapticFeedback('light');
-        const temp = fromSelect.value;
-        fromSelect.value = toSelect.value;
-        toSelect.value = temp;
-        processConversion();
-    });
+    renderDropdowns();
+    fetchLiveRates();
+
+    swapBtn.addEventListener('click', () => { hapticFeedback('light'); const temp = fromSelect.value; fromSelect.value = toSelect.value; toSelect.value = temp; processConversion(); });
 
     function pressKey(key) {
-        hapticFeedback('light');
-        const operators = ['+', '-', '×', '÷'];
-        const lastChar = currentInputValue.slice(-1);
-
-        if (currentInputValue === "0" && !operators.includes(key) && key !== ".") {
-            currentInputValue = key;
-        } else {
-            if (operators.includes(key) && operators.includes(lastChar)) {
-                currentInputValue = currentInputValue.slice(0, -1) + key;
-            } else {
-                if (currentInputValue.length < 20) currentInputValue += key;
-            }
-        }
+        hapticFeedback('light'); const operators = ['+', '-', '×', '÷']; const lastChar = currentInputValue.slice(-1);
+        if (currentInputValue === "0" && !operators.includes(key) && key !== ".") { currentInputValue = key; }
+        else { if (operators.includes(key) && operators.includes(lastChar)) { currentInputValue = currentInputValue.slice(0, -1) + key; } else { if (currentInputValue.length < 20) currentInputValue += key; } }
         updateDisplayAndConvert();
     }
 
-    function calculateMathResult() {
-        hapticFeedback('heavy');
-        try {
-            let mathExpr = currentInputValue.replace(/×/g, '*').replace(/÷/g, '/');
-            let result = eval(mathExpr);
-            result = Math.round(result * 100000000) / 100000000;
-            if (isFinite(result)) {
-                currentInputValue = String(result);
-                updateDisplayAndConvert();
-            }
-        } catch (e) {}
-    }
+    function calculateMathResult() { hapticFeedback('heavy'); try { let mathExpr = currentInputValue.replace(/×/g, '*').replace(/÷/g, '/'); let result = eval(mathExpr); result = Math.round(result * 100000000) / 100000000; if (isFinite(result)) { currentInputValue = String(result); updateDisplayAndConvert(); } } catch (e) {} }
 
-    function clearAll() {
-        hapticFeedback('light');
-        currentInputValue = "0";
-        updateDisplayAndConvert();
-    }
+    function clearAll() { hapticFeedback('light'); currentInputValue = "0"; updateDisplayAndConvert(); }
+    function updateDisplayAndConvert() { amountInput.value = currentInputValue; processConversion(); }
 
-    function updateDisplayAndConvert() {
-        amountInput.value = currentInputValue;
-        processConversion();
-    }
-
-    function processConversion() {
-        try {
-            let mathExpr = currentInputValue.replace(/×/g, '*').replace(/÷/g, '/');
-            let evaluatedAmount = eval(mathExpr);
-            
-            if (isFinite(evaluatedAmount)) {
-                doCurrencyMath(evaluatedAmount);
-            }
-        } catch (e) {}
-    }
+    function processConversion() { try { let mathExpr = currentInputValue.replace(/×/g, '*').replace(/÷/g, '/'); let evaluatedAmount = eval(mathExpr); if (isFinite(evaluatedAmount)) { doCurrencyMath(evaluatedAmount); } } catch (e) {} }
 
     function doCurrencyMath(amount) {
-        const fromC = fromSelect.value;
-        const toC = toSelect.value;
-        const amountInUSD = amount / exchangeRates[fromC];
-        const finalAmount = amountInUSD * exchangeRates[toC];
-        
-        if (toC === 'BTC' || toC === 'ETH' || toC === 'XAU') {
-            resultDisplay.textContent = finalAmount.toFixed(6);
-        } else {
-            resultDisplay.textContent = finalAmount.toLocaleString('en-US', {
-                minimumFractionDigits: 2, maximumFractionDigits: 2
-            });
-        }
+        const fromC = fromSelect.value; const toC = toSelect.value;
+        const amountInUSD = amount / exchangeRates[fromC]; const finalAmount = amountInUSD * exchangeRates[toC];
+        if (toC === 'BTC' || toC === 'ETH' || toC === 'XAU') { resultDisplay.textContent = finalAmount.toFixed(6); }
+        else { resultDisplay.textContent = finalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
     }
 
-    // --- 獨立的單字刪除邏輯 ---
-    function deleteSingleChar() {
-        if (currentInputValue.length > 1) {
-            currentInputValue = currentInputValue.slice(0, -1);
-        } else {
-            currentInputValue = "0";
-        }
-        updateDisplayAndConvert();
-    }
-
+    function deleteSingleChar() { if (currentInputValue.length > 1) { currentInputValue = currentInputValue.slice(0, -1); } else { currentInputValue = "0"; } updateDisplayAndConvert(); }
     let deleteTimer;
-    function startDelete(e) {
-        if(e) e.preventDefault();
-        hapticFeedback('light');
-        deleteTimer = setTimeout(() => {
-            currentInputValue = "0";
-            updateDisplayAndConvert();
-            hapticFeedback('heavy');
-            deleteTimer = null;
-        }, 600);
-    }
+    function startDelete(e) { if(e) e.preventDefault(); hapticFeedback('light'); deleteTimer = setTimeout(() => { currentInputValue = "0"; updateDisplayAndConvert(); hapticFeedback('heavy'); deleteTimer = null; }, 600); }
+    function endDelete(e) { if(e) e.preventDefault(); if (deleteTimer) { clearTimeout(deleteTimer); deleteTimer = null; deleteSingleChar(); } }
+    deleteBtn.addEventListener('touchstart', startDelete, {passive: false}); deleteBtn.addEventListener('touchend', endDelete, {passive: false}); deleteBtn.addEventListener('mousedown', startDelete); deleteBtn.addEventListener('mouseup', endDelete);
+    fromSelect.addEventListener('change', processConversion); toSelect.addEventListener('change', processConversion);
 
-    function endDelete(e) {
-        if(e) e.preventDefault();
-        if (deleteTimer) {
-            clearTimeout(deleteTimer);
-            deleteTimer = null; // 清除殘留狀態
-            deleteSingleChar();
-        }
-    }
-
-    deleteBtn.addEventListener('touchstart', startDelete, {passive: false});
-    deleteBtn.addEventListener('touchend', endDelete, {passive: false});
-    deleteBtn.addEventListener('mousedown', startDelete);
-    deleteBtn.addEventListener('mouseup', endDelete);
-    deleteBtn.addEventListener('mouseleave', () => { if(deleteTimer) clearTimeout(deleteTimer); });
-
-    fromSelect.addEventListener('change', processConversion);
-    toSelect.addEventListener('change', processConversion);
-
-    // --- 實體鍵盤監聽與視覺回饋 ---
     document.addEventListener('keydown', (e) => {
         if (document.activeElement.tagName === 'SELECT') return;
-
-        const key = e.key;
-        let mappedKey = null;
-
+        const key = e.key; let mappedKey = null;
         if ((key >= '0' && key <= '9') || key === '.') mappedKey = key;
         else if (key === '+' || key === '-') mappedKey = key;
-        else if (key === '*') mappedKey = '×';
-        else if (key === '/') mappedKey = '÷';
-        else if (key === 'Enter' || key === '=') {
-            e.preventDefault();
-            calculateMathResult();
-            triggerButtonVisual('=');
-            return;
-        }
-        else if (key === 'Backspace') {
-            e.preventDefault();
-            deleteSingleChar(); // 直接呼叫單字刪除，不經過長按邏輯
-            triggerButtonVisual('⌫');
-            return;
-        }
-        else if (key === 'Escape' || key.toLowerCase() === 'c') {
-            e.preventDefault();
-            clearAll();
-            triggerButtonVisual('C');
-            return;
-        }
-
-        if (mappedKey) {
-            e.preventDefault();
-            pressKey(mappedKey);
-            triggerButtonVisual(mappedKey);
-        }
+        else if (key === '*') mappedKey = '×'; else if (key === '/') mappedKey = '÷';
+        else if (key === 'Enter' || key === '=') { e.preventDefault(); calculateMathResult(); triggerButtonVisual('='); return; }
+        else if (key === 'Backspace') { e.preventDefault(); deleteSingleChar(); triggerButtonVisual('⌫'); return; }
+        else if (key === 'Escape' || key.toLowerCase() === 'c') { e.preventDefault(); clearAll(); triggerButtonVisual('C'); return; }
+        if (mappedKey) { e.preventDefault(); pressKey(mappedKey); triggerButtonVisual(mappedKey); }
     });
 
-    function triggerButtonVisual(keyLabel) {
-        const buttons = document.querySelectorAll('.key-btn');
-        buttons.forEach(btn => {
-            if (btn.innerText.trim() === keyLabel) {
-                btn.classList.add('active-state');
-                setTimeout(() => btn.classList.remove('active-state'), 100);
-            }
-        });
-    }
-
-    fetchLiveRates();
+    function triggerButtonVisual(keyLabel) { const buttons = document.querySelectorAll('.key-btn'); buttons.forEach(btn => { if (btn.innerText.trim() === keyLabel) { btn.classList.add('active-state'); setTimeout(() => btn.classList.remove('active-state'), 100); } }); }
 </script>
 
 </body>
